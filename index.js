@@ -1,4 +1,5 @@
 const { App } = require('@slack/bolt');
+const japaneseHoliday = require('japanese-holidays');
 require('dotenv').config();
 
 const botToken = process.env.SLACK_BOT_TOKEN;
@@ -26,6 +27,36 @@ app.event('reaction_added', async({ event, context }) => {
 		text: `<@${event.user}> addded reaction! :${event.reaction}`
 	});
 	console.log(result);
+});
+
+// message機能で平日のみ発信させる
+app.message('test', async({ message, say }) => {
+
+	// const message =
+	const channelId = 'C01TADN4HDW';
+
+	try {
+		const message = await client.chat.postMessage({
+			channel: channelId,
+			text: "Hello, World"
+		})
+		// const date = new Date();
+		// // 曜日判定
+		// const day = date.getDay();
+		// // 祝日判定
+		// const holiday = japaneseHoliday.isHoliday(date);
+
+		// if (holiday) {
+		// 	console.log('処理返さない')
+		// } else if (day != 6 || day != 7) {
+		// 	console.log('処理返す')
+		// } else {
+		// 	console.log('処理返さない')
+		// }
+	}
+	catch (error) {
+		console.error(error);
+	}
 });
 
 (async () => {
