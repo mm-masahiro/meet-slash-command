@@ -44,15 +44,14 @@ app.message('test', async({ message, say }) => {
 	}
 });
 
-schedule.scheduleJob({ hour: 21, minute: 03 }, () => {
+const myjpb = schedule.scheduleJob({ hour: 8, minute: 00 }, () => {
 	const body = {
 		token: botToken,
 		channel: '#pick-news',
-		text:'test test',
-		blocks: JSON.stringify(createBlocks())
+		text:'おはようございます！',
 	}
-
 	axios.post('https://slack.com/api/chat.postMessage', qs.stringify(body));
+
 });
 
 (async () => {
