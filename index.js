@@ -13,25 +13,6 @@ const app = new App({
 	signingSecret: signingSecret
 });
 
-app.command('/meet', async ({ command, ack, say }) => {
-  await ack();
-
-	const meeting = require('google-meet-api').meet;
-
-	console.log(meeting);
-
-	await say(`meet: ${command.text}`);
-});
-
-app.event('reaction_added', async({ event, context }) => {
-	const result = await app.client.chat.postMessage({
-		token: context.botToken,
-		channel: event.item.channel,
-		text: `<@${event.user}> addded reaction! :${event.reaction}`
-	});
-	console.log(result);
-});
-
 // message機能で平日のみ発信させる
 app.message('test', async({ message, say }) => {
 
@@ -72,63 +53,6 @@ schedule.scheduleJob({ hour: 21, minute: 03 }, () => {
 	}
 
 	axios.post('https://slack.com/api/chat.postMessage', qs.stringify(body));
-});
-
-const getRandomNum = (max) => {
-	return Math.floor(Math.random() * Math.floor(max));
-};
-
-const restaurants = [
-	{
-		name: "リトル ダーリン コーヒー ロースターズ",
-		url: "https://tabelog.com/tokyo/A1307/A130701/13225981/",
-	},
-	{
-		name: "カフェ キツネ",
-		url: "https://retty.me/area/PRE13/ARE23/SUB2303/100001513400/",
-	},
-	{
-		name: "カフェ レジュ グルニエ",
-		url: "https://retty.me/area/PRE13/ARE23/SUB2303/100000672929/",
-	},
-];
-
-const createBlocks = () => {
-	const restaurant = restaurants[getRandomNum(restaurants.length)];
-	const blocks = [
-		{
-			type: 'section',
-			text: {
-				type: 'mrkdwn',
-				text: `${restaurant.url} | ${restaurant.name}`
-			},
-			accessory: {
-				type: 'button',
-				action_id: 'find_another',
-				text: {
-					type: 'plain_text',
-					text: 'Show another'
-				}
-			}
-		},
-	]
-}
-
-
-app.command('/lunch', async({ ack, respond }) => {
-	await ack();
-	const restaurant = restaurants[getRandomNum(restaurants.length)];
-	await respond({
-		response_type: 'in_channel',
-		blocks: [
-			{
-				type: 'mrkdown',
-				text: `${restaurant}`
-			}
-		]
-	})
-	const rand = getRandomNum(100);
-	await say(`${rand}`);
 });
 
 (async () => {
