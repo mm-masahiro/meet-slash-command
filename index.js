@@ -26,7 +26,7 @@ const myjob = () => {
 		console.log('祝日です')
 	// 土曜日じゃない　かつ　日曜日でもない
 	} else if (day !== 6 && day !== 0) {
-		schedule.scheduleJob({ hour: 2, minute: 46 }, () => {
+		schedule.scheduleJob({ hour: 7, minute: 50 }, () => {
 			const body = {
 				token: botToken,
 				channel: '#pick-news',
@@ -40,16 +40,6 @@ const myjob = () => {
 }
 
 myjob();
-
-// schedule.scheduleJob({ hour: 2, minute: 28 }, () => {
-// 	const body = {
-// 		token: botToken,
-// 		channel: '#pick-news',
-// 		text:'おはようございます！',
-// 	}
-// 	axios.post('https://slack.com/api/chat.postMessage', qs.stringify(body));
-
-// });
 
 // message機能で平日のみ発信させる
 app.message('test', async({ message, say }) => {
