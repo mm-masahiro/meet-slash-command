@@ -1,107 +1,92 @@
-const { App } = require('@slack/bolt');
-const japaneseHoliday = require('japanese-holidays');
-const schedule = require('node-schedule');
-const axios = require('axios');
-const qs = require('qs');
-require('dotenv').config();
+const fs = require('fs');
+const readline = require('readline');
+const {google} = require('googleapis');
 
-const botToken = process.env.SLACK_BOT_TOKEN;
-const signingSecret = process.env.SLACK_SIGNING_SECRET;
+// If modifying these scopes, delete token.json.
+const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
+// The file token.json stores the user's access and refresh tokens, and is
+// created automatically when the authorization flow completes for the first
+// time.
+const TOKEN_PATH = 'token.json';
 
-const app = new App({
-	token: botToken,
-	signingSecret: signingSecret
+// Load client secrets from a local file.
+fs.readFile('credentials.json', (err, content) => {
+  if (err) return console.log('Error loading client secret file:', err);
+  // Authorize a client with credentials, then call the Google Sheets API.
+  authorize(JSON.parse(content), listMajors);
 });
 
-const date = new Date();
+/**
+ * Create an OAuth2 client with the given credentials, and then execute the
+ * given callback function.
+ * @param {Object} credentials The authorization client credentials.
+ * @param {function} callback The callback to call with the authorized client.
+ */
+function authorize(credentials, callback) {
+  const {client_secret, client_id, redirect_uris} = credentials.installed;
+  const oAuth2Client = new google.auth.OAuth2(
+      client_id, client_secret, redirect_uris[0]);
 
-// 曜日判定
-const day = date.getDay();
-
-// 祝日判定
-const holiday = japaneseHoliday.isHoliday(date);
-
-const myjob = () => {
-	if (holiday) {
-		console.log('祝日です')
-	// 土曜日じゃない　かつ　日曜日でもない
-	} else if (day !== 6 && day !== 0) {
-		schedule.scheduleJob({ hour: 7, minute: 50 }, () => {
-			const body = {
-				token: botToken,
-				channel: '#pick-news',
-				text:'おはようございます！',
-			}
-			axios.post('https://slack.com/api/chat.postMessage', qs.stringify(body));
-		});
-	} else {
-		console.log('土日です')
-	}
+  // Check if we have previously stored a token.
+  fs.readFile(TOKEN_PATH, (err, token) => {
+    if (err) return getNewToken(oAuth2Client, callback);
+    oAuth2Client.setCredentials(JSON.parse(token));
+    callback(oAuth2Client);
+  });
 }
 
-myjob();
+/**
+ * Get and store new token after prompting for user authorization, and then
+ * execute the given callback with the authorized OAuth2 client.
+ * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
+ * @param {getEventsCallback} callback The callback for the authorized client.
+ */
+function getNewToken(oAuth2Client, callback) {
+  const authUrl = oAuth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: SCOPES,
+  });
+  console.log('Authorize this app by visiting this url:', authUrl);
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  rl.question('Enter the code from that page here: ', (code) => {
+    rl.close();
+    oAuth2Client.getToken(code, (err, token) => {
+      if (err) return console.error('Error while trying to retrieve access token', err);
+      oAuth2Client.setCredentials(token);
+      // Store the token to disk for later program executions
+      fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
+        if (err) return console.error(err);
+        console.log('Token stored to', TOKEN_PATH);
+      });
+      callback(oAuth2Client);
+    });
+  });
+}
 
-// message機能で平日のみ発信させる
-app.message('test', async({ message, say }) => {
-
-	// const day = new Date();
-	// day.setHours(1, 29, 0);
-
-	// try {
-	// 	const result = await client.chat.scheduleMessage({
-	// 		channel: channelId,
-	// 		text: 'hoge',
-	// 		post_at: day.getTime() / 1000
-	// 	});
-
-	// 	console.log(result);
-	// } catch (error) {
-	// 	console.log(error);
-	// }
-
-	// const message =
-	const channelId = 'C01TADN4HDW';
-
-	try {
-		const date = new Date();
-
-		// 曜日判定
-		const day = date.getDay();
-
-		// 祝日判定
-		const holiday = japaneseHoliday.isHoliday(date);
-
-		// date.setHours(7, 50, 0);
-		const hour = date.setHours(1, 59, 0);
-
-		console.log(hour)
-
-		// const message = await client.chat.postMessage({
-		const result = await client.chat.scheduleMessage({
-			token: botToken,
-			channel: channelId,
-			text: "Hello, World",
-			post_at: date.getTime() / 1000
-		});
-
-		console.log(result);
-
-		// if (holiday) {
-		// 	console.log('祝日です')
-		// } else if (day != 6 || day != 7) {
-		// 	// メッセージを送る時間の設定
-		// 	// console.log('平日です')
-		// } else {
-		// 	console.log('土日です')
-		// }
-	}
-	catch (error) {
-		console.error(error);
-	}
-});
-
-(async () => {
-	await app.start(process.env.PORT || 3300);
-
-  console.log('⚡️ Bolt app is running!');
-})();
+/**
+ * Prints the names and majors of students in a sample spreadsheet:
+ * @see https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
+ * @param {google.auth.OAuth2} auth The authenticated Google OAuth client.
+ */
+function listMajors(auth) {
+  const sheets = google.sheets({version: 'v4', auth});
+  sheets.spreadsheets.values.get({
+    spreadsheetId: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms',
+    range: 'Class Data!A2:E',
+  }, (err, res) => {
+    if (err) return console.log('The API returned an error: ' + err);
+    const rows = res.data.values;
+    if (rows.length) {
+      console.log('Name, Major:');
+      // Print columns A and E, which correspond to indices 0 and 4.
+      rows.map((row) => {
+        console.log(`${row[0]}, ${row[4]}`);
+      });
+    } else {
+      console.log('No data found.');
+    }
+  });
+}

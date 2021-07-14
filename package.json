@@ -22,6 +22,8 @@
     "axios": "^0.21.1",
     "dotenv": "^10.0.0",
     "google-meet-api": "^1.0.0",
+    "google-spreadsheet": "^3.1.15",
+    "googleapis": "^39.2.0",
     "japanese-holidays": "^1.0.9",
     "node-schedule": "^2.0.0",
     "qs": "^6.7.0"
